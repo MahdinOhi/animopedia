@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animepedia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'VT323', monospace;
+        }
+
+        body {
+            background: linear-gradient(rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.9)),
+                url('https://api.waifu.pics/sfw/waifu') center/cover fixed;
+            color: #00ff9d;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .search-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+        }
+
+        #searchInput {
+            width: 600px;
+            padding: 20px 30px;
+            font-size: 1.8em;
+            background: rgba(0, 0, 0, 0.9);
+            border: 4px solid #ff00ff;
+            color: #00ff9d;
+            border-radius: 50px;
+            outline: none;
+            text-shadow: 0 0 10px #00ff9d;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.7);
+        }
+
+        .wiki-page {
+            max-width: 1200px;
+            margin: 100px auto;
+            padding: 40px;
+            display: none;
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #00ffff;
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .anime-header {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .anime-poster {
+            border: 5px solid #ff00ff;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.5);
+        }
+
+        .info-box {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00ff9d;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="ENTER ANIME NAME... 🔍" autocomplete="off">
+    </div>
+    <div class="wiki-page"></div>
+
+    <script>
+        const JIKAN_API = 'https://api.jikan.moe/v4/anime?q=';
+        const wikiContainer = document.querySelector('.wiki-page');
+
+        document.getElementById('searchInput').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (!query) return;
+
+                try {
+                    const response = await fetch(`${JIKAN_API}${encodeURIComponent(query)}`);
+                    const { data } = await response.json();
+                    if (data.length) displayWikiPage(data[0]);
+                    else showError();
+                } catch (error) {
+                    showError();
+                }
+            }
+        });
+
+        function displayWikiPage(anime) {
+            document.querySelector('.search-container').style.top = '20px';
+            wikiContainer.style.display = 'block';
+
+            wikiContainer.innerHTML = `
+                <div class="anime-header">
+                    <img src="${anime.images?.jpg?.large_image_url}" 
+                         class="anime-poster" 
+                         alt="${anime.title} poster"
+                         width="400">
+                    
+                    <div class="info-box">
+                        <h1 style="font-size: 2.5em; margin-bottom: 20px; color: #ff00ff">
+                            ${anime.title} 
+                            <span style="font-size: 0.6em; color: #00ffff">
+                                (${anime.title_japanese || 'N/A'})
+                            </span>
+                        </h1>
+                        
+                        <div class="stats-grid">
+                            <p>📺 Episodes: ${anime.episodes || 'N/A'}</p>
+                            <p>⭐ Score: ${anime.score || 'N/A'}</p>
+                            <p>📅 Aired: ${anime.aired?.string || 'N/A'}</p>
+                            <p>📖 Source: ${anime.source || 'N/A'}</p>
+                            <p>🎭 Genres: ${anime.genres?.map(g => g.name).join(', ') || 'N/A'}</p>
+                            <p>📚 Manga: ${anime.related?.manga?.map(m =>
+                `<a href="${m.url}" style="color: #00ff9d">${m.name}</a>`
+            ).join(', ') || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h2 style="color: #ff00ff; margin-bottom: 15px">📜 Synopsis</h2>
+                    <p style="line-height: 1.6">${anime.synopsis || 'No synopsis available'}</p>
+                </div>
+
+                <div class="info-box">
+                    <h2 style="color: #ff00ff; margin-bottom: 15px">🌟 Key Stories</h2>
+                    ${anime.themes?.map(theme => `
+                        <div style="margin: 10px 0; padding: 10px; border-left: 3px solid #00ffff">
+                            ${theme.name}: ${theme.description || 'No description'}
+                        </div>
+                    `).join('') || '<p>No theme information available</p>'}
+                </div>
+
+                <div class="info-box">
+                    <h2 style="color: #ff00ff; margin-bottom: 15px">🎞️ Media</h2>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px">
+                        ${anime.images?.jpg?.image_url ? `
+                            <img src="${anime.images.jpg.image_url}" 
+                                 style="border: 2px solid #00ff9d; border-radius: 5px">
+                        ` : ''}
+                        ${anime.trailer?.embed_url ? `
+                            <iframe src="${anime.trailer.embed_url}" 
+                                    style="border: 2px solid #00ff9d; border-radius: 5px"
+                                    width="100%" height="200"></iframe>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function showError() {
+            wikiContainer.innerHTML = `
+                <div class="info-box" style="text-align: center; padding: 50px">
+                    <h2 style="color: #ff0000">🚨 Error fetching data!</h2>
+                    <p>Try another search term</p>
+                </div>
+            `;
+            wikiContainer.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>
